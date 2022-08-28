@@ -46,15 +46,19 @@ class Season {
   }
 }
 
-const dayPartTemplate = [[0,6],[6,9],[9,12],[12,15],[15,18],[18,21],[21,24]]
+ 
+const dayPartTemplate = Array.from(Array(24).keys()).map(e => {
+  return [e, e + 1]
 
-let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
-let Daytypes = ['WorkDay','WeekendDay']
+})
+
+let seasons = ['winter', 'summer']
+let Daytypes = ['WorkDay']
 
 let mouthPrioritet = {};
 let DayTypePrioritet = {};
 
-months.forEach((value, index) => {
+seasons.forEach((value, index) => {
  mouthPrioritet[value]=index
 });
 
@@ -65,24 +69,23 @@ Daytypes.forEach((value, index) => {
 
 
 const listOfDayArrays = [];
-months.forEach( (month) => {
-  listOfDayArrays.push ([new Day( 'WorkDay', dayPartTemplate, [1, 2, 3, 4, 5]),
-  new Day('WeekendDay', dayPartTemplate, [0, 6])]);
-})
+listOfDayArrays.push (new Day( 'WorkDay', dayPartTemplate, [0 ,1, 2, 3, 4, 5, 6]));
 
 
-const monthIntervals = [];
-for (let i = 0; i <= 11; i++) {
-monthIntervals.push([[new Date(year, i, 1), new Date(year, i + 1, 1)]] )
-}
+const winterIntervals = [];
+winterIntervals.push([
+  new Date(year, 1, 1), new Date(year, 6, 1),
+  new Date(year, 9, 1), new Date(year, 12, 1)
+]);
+
+const summerIntervals = [];
+summerIntervals.push([
+  new Date(year, 6, 1), new Date(year, 9, 1)
+]);
 
 const allYear = []
-
-months.forEach((month, i) => {
-
-  allYear.push(new Season(month, listOfDayArrays[i], monthIntervals[i])  )
-
-})
+allYear.push(new Season(seasons[0], listOfDayArrays, winterIntervals));
+allYear.push(new Season(seasons[1], listOfDayArrays, summerIntervals));
 
 
 console.log(allYear);
