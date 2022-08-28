@@ -52,13 +52,13 @@ const dayPartTemplate = Array.from(Array(24).keys()).map(e => {
 
 })
 
-let seasons = ['winter', 'summer']
+let seasons = ['winter', 'winter_Bel_NPP_off', 'summer', 'summer_Bel_NPP_off', 'summer_New_NPP_off']
 let Daytypes = ['WorkDay']
 
 let mouthPrioritet = {};
 let DayTypePrioritet = {};
 
-seasons.forEach((value, index) => {
+seasons.forEach((value, index) => { 
  mouthPrioritet[value]=index
 });
 
@@ -74,18 +74,41 @@ listOfDayArrays.push (new Day( 'WorkDay', dayPartTemplate, [0 ,1, 2, 3, 4, 5, 6]
 
 const winterIntervals = [];
 winterIntervals.push([
-  new Date(year, 1, 1), new Date(year, 6, 1),
-  new Date(year, 9, 1), new Date(year, 12, 1)
+  new Date(year, 0, 1), new Date(year, 5, 1),  //  1 января - 1 июня
+  new Date(year, 8, 1), new Date(year, 11, 1)  //  1 сентября - 1 декабря
+]);
+
+const winterBellNppOfIntervals = [];
+winterBellNppOfIntervals.push([
+  new Date(year, 11, 1), new Date(year + 1, 0, 1), // 1 декабря - 1 января след. года
 ]);
 
 const summerIntervals = [];
 summerIntervals.push([
-  new Date(year, 6, 1), new Date(year, 9, 1)
+  new Date(year, 7, 1), new Date(year, 8, 1), //  1 августа - 1 сентября 
 ]);
+
+
+const summerBelNppOffIntervals = [];
+summerBelNppOffIntervals.push([
+  new Date(year, 6, 1), new Date(year, 7, 1) // 1 июля - 1 августа
+]);
+
+const summerNewNppOffIntervals = [];
+summerNewNppOffIntervals.push([
+  new Date(year, 5, 1), new Date(year, 6, 1) // 1 июня - 1 июля
+]);
+
+
+
+
 
 const allYear = []
 allYear.push(new Season(seasons[0], listOfDayArrays, winterIntervals));
-allYear.push(new Season(seasons[1], listOfDayArrays, summerIntervals));
+allYear.push(new Season(seasons[1], listOfDayArrays, winterBellNppOfIntervals));
+allYear.push(new Season(seasons[2], listOfDayArrays, summerIntervals));
+allYear.push(new Season(seasons[3], listOfDayArrays, summerBelNppOffIntervals));
+allYear.push(new Season(seasons[4], listOfDayArrays, summerNewNppOffIntervals));
 
 
 console.log(allYear);
@@ -201,6 +224,7 @@ postResults.forEach((value, key) => {
     'Segment_name': value[0],
     'Time': value[1],
     'Energy': value[2],
+    'Power': value[2] * sumPowers/(sumHours * value[1])
   })
 })
 
