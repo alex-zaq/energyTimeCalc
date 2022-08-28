@@ -4,11 +4,11 @@ let xlsx = require("xlsx");
 let wb = xlsx.readFile('Input.xlsx')
 let sh1 = wb.Sheets['data'];
 let loadData = xlsx.utils.sheet_to_json(sh1);
-let startDate = new Date(2021, 0, 1, 0, 0, 0);
 let year = 2021;
+// let startDate = new Date(2021, 0, 1, 0, 0, 0);
 
 loadData.forEach((value, i) => {
-  value['date'] = new Date(new Date(2021, 0, 1, 0, 0, 0).setHours(i));
+  value['date'] = new Date(new Date(year, 0, 1, 0, 0, 0).setHours(i));
 });
 
 
@@ -25,8 +25,7 @@ function GetIndexByDate(loadData, date) {
 
 
 class Day {
-  constructor(name, weekDayName, dayParts, weekDayNumber) {
-    this.name = name;
+  constructor( weekDayName, dayParts, weekDayNumber) {
     this.weekDayName = weekDayName;
     this.dayParts = dayParts;
     this.weekDayNumber = weekDayNumber
@@ -47,28 +46,46 @@ class Season {
   }
 }
 
-const dayPartTemplate = Array.from(Array(24).keys()).map(e => {
-  return [e, e + 1]
+const dayPartTemplate = [[0,6],[6,9],[9,12],[12,15],[15,18],[18,21],[21,24]]
+
+let months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+let Daytypes = ['WorkDay','WeekendDay']
+
+let mouthPrioritet = {};
+let DayTypePrioritet = {};
+
+months.forEach((value, index) => {
+ mouthPrioritet[value]=index
+});
+
+Daytypes.forEach((value, index) => {
+  DayTypePrioritet[value]=index
+});
+
+
+
+const listOfDayArrays = [];
+months.forEach( (month) => {
+  listOfDayArrays.push ([new Day( 'WorkDay', dayPartTemplate, [1, 2, 3, 4, 5]),
+  new Day('WeekendDay', dayPartTemplate, [0, 6])]);
+})
+
+
+const monthIntervals = [];
+for (let i = 0; i <= 11; i++) {
+monthIntervals.push([[new Date(year, i, 1), new Date(year, i + 1, 1)]] )
+}
+
+const allYear = []
+
+months.forEach((month, i) => {
+
+  allYear.push(new Season(month, listOfDayArrays[i], monthIntervals[i])  )
 
 })
 
 
-let winterDaysArray = [new Day('Зимний_день', 'День_недели', dayPartTemplate, [0, 1, 2, 3, 4, 5, 6])];
-let summerDaysArray = [new Day('Летний_день', 'День_недели', dayPartTemplate, [0, 1, 2, 3, 4, 5, 6])];
-
-let winterIntervals = [
-  [new Date("1 January 2021"), new Date("1 May 2021")],
-  [new Date("1 October 2021"), new Date("1 January 2022")]
-];
-
-let summerIntervals = [
-  [new Date("1 May 2021"), new Date("1 October 2021")]
-];
-
-let winter = new Season('Зима', winterDaysArray, winterIntervals);
-let summer = new Season('Лето', summerDaysArray, summerIntervals);
-
-const allYear = [winter, summer];
+console.log(allYear);
 
 let result = new Map();
 let currHour;
@@ -95,14 +112,14 @@ for (let season of allYear) {
 
             if (currHour >= partStart && currHour < partEnd) {
 
-              const key = `${season.name}_${day.name}_${day.weekDayName}_${partStart}_${partEnd}`;
+              const key = `${season.name}_${day.weekDayName}_${partStart}_${partEnd}`;
 
               if (result.has(key)) {
                 const res = result.get(key)
                 result.set(key, [res[0] + 1, res[1] + loadData[index]['Мощность, МВт']])
               } else {
                 result.set(key, [1, loadData[index]['Мощность, МВт']])
-              } // конец обновления сегмента в словаре - название, время, мощность
+              } 
 
               curr.setHours(curr.getHours() + 1);
               index++;
@@ -138,10 +155,47 @@ result.forEach((value, key) => {
   postResults.push([key, value[0] / sumHours, value[1] / sumPowers])
 })
 
+
+postResults.sort( (value1, value2) =>
+{
+   const [season1,daytype1,start1] = value1[0].split('_');
+   const [season2,daytype2,start2] = value2[0].split('_');
+
+   if (mouthPrioritet[season1] > mouthPrioritet[season2]) {
+     return 1
+    } else
+    if (mouthPrioritet[season1] < mouthPrioritet[season2]) {
+     return -1   
+    } else {
+      if (daytype1 > daytype2){
+        return -1
+      } 
+      else if (daytype1 < daytype2){
+        return 1
+      } else
+      {
+         if ((+start1)<(+start2)){ 
+            return -1
+         } else
+          if ((+start1)>(+start2)){ 
+            return 1
+          }
+          else
+          return 0;
+      } 
+    
+}})
+
+
+
+
 let toExcel = [];
 postResults.forEach((value, key) => {
+  if (key.toString().length == 1) {key ='00'+key}
+  if (key.toString().length == 2) {key ='0'+key}
   toExcel.push({
-    'Segment': value[0],
+    'Segment':`S${key}`,
+    'Segment_name': value[0],
     'Time': value[1],
     'Energy': value[2],
   })
@@ -151,6 +205,16 @@ let newWB = xlsx.utils.book_new();
 let newWS = xlsx.utils.json_to_sheet(toExcel)
 xlsx.utils.book_append_sheet(newWB, newWS, 'Results');
 xlsx.writeFile(newWB, 'Output.xlsx')
+
+
+// let excApp = new ActiveXObject("Excel.Application");
+
+// excApp.visible = true;
+
+// var excBook = excApp.Workbooks.open("Output.xlsx");
+
+// idTmr = window.setInterval("Cleanup();",1000);
+
 
 
 // сфотать полезное
