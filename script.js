@@ -5,7 +5,8 @@ let wb = xlsx.readFile('Input.xlsx')
 let sh1 = wb.Sheets['data'];
 let loadData = xlsx.utils.sheet_to_json(sh1);
 let year = 2021;
-// let startDate = new Date(2021, 0, 1, 0, 0, 0);
+
+const energyTypes = Object.keys(loadData[0]);
 
 loadData.forEach((value, i) => {
   value['date'] = new Date(new Date(year, 0, 1, 0, 0, 0).setHours(i));
@@ -111,7 +112,40 @@ allYear.push(new Season(seasons[3], listOfDayArrays, summerBelNppOffIntervals));
 allYear.push(new Season(seasons[4], listOfDayArrays, summerNewNppOffIntervals));
 
 
-console.log(allYear);
+// console.log(allYear);
+
+
+
+function UpdateSelectedResults(result, key, index, energyNames) {
+  
+  if (result.has(key)) {
+    const res = result.get(key)
+
+      const dataToAdd = [ res[0] + 1];
+
+      
+      energyNames.forEach((energyName, i) => {
+
+        dataToAdd.push( res[i+1] +  loadData[index][energyName]   )
+
+      });
+
+    result.set(key, dataToAdd ) 
+
+  } else {
+
+    const dataToAdd = [1];
+
+    energyNames.forEach((energyName, i) => {
+      dataToAdd.push(loadData[index][energyName])
+    });
+
+    result.set(key, dataToAdd)
+  } 
+
+}
+
+
 
 let result = new Map();
 let currHour;
@@ -140,13 +174,10 @@ for (let season of allYear) {
 
               const key = `${season.name}_${day.weekDayName}_${partStart}_${partEnd}`;
 
-              if (result.has(key)) {
-                const res = result.get(key)
-                result.set(key, [res[0] + 1, res[1] + loadData[index]['Мощность, МВт']])
-              } else {
-                result.set(key, [1, loadData[index]['Мощность, МВт']])
-              } 
-
+              
+                UpdateSelectedResults(result, key, index, energyTypes)
+              
+              
               curr.setHours(curr.getHours() + 1);
               index++;
               currHourIndex++;
@@ -168,18 +199,37 @@ for (let season of allYear) {
 
 }
 
-
-let sumHours = 0; let sumPowers = 0;
+let sumHours = 0; 
+let sumpowers= new Array(energyTypes.length).fill(0);
 result.forEach((value, key) => {
+
   sumHours += value[0];
-  sumPowers += value[1];
+
+  energyTypes.forEach((e,i)=>{
+      sumpowers[i]+=value[i+1];
+  })
+
+
 })
+
 
 
 let postResults = [];
 result.forEach((value, key) => {
-  postResults.push([key, value[0] / sumHours, value[1] / sumPowers])
+
+  const dataToAdd = [key]
+ 
+  dataToAdd.push(value[0]/sumHours)
+   
+  energyTypes.forEach((e,i)=>{
+    dataToAdd.push(value[i+1] / sumpowers[i] )
+
+  })
+
+  postResults.push(dataToAdd)
 })
+
+
 
 
 postResults.sort( (value1, value2) =>
@@ -219,13 +269,18 @@ let toExcel = [];
 postResults.forEach((value, key) => {
   if (key.toString().length == 1) {key ='00'+key}
   if (key.toString().length == 2) {key ='0'+key}
-  toExcel.push({
-    'Segment':`S${key}`,
-    'Segment_name': value[0],
-    'Time': value[1],
-    'Energy': value[2],
-    'Power': value[2] * sumPowers/(sumHours * value[1])
+  
+  const template = {
+    'Сегмент':`S${key}`,
+    'Имя сегмента': value[0],
+    'Время': value[1],
+  }
+
+  energyTypes.forEach( (e, i) => {
+    template[`${e}`]=value[i+2]
   })
+
+  toExcel.push(template)
 })
 
 let newWB = xlsx.utils.book_new();
@@ -234,15 +289,6 @@ xlsx.utils.book_append_sheet(newWB, newWS, 'Results');
 xlsx.writeFile(newWB, 'Output.xlsx')
 
 
-// let excApp = new ActiveXObject("Excel.Application");
-
-// excApp.visible = true;
-
-// var excBook = excApp.Workbooks.open("Output.xlsx");
-
-// idTmr = window.setInterval("Cleanup();",1000);
 
 
-
-// сфотать полезное
 
